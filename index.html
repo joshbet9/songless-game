@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Songless Game</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding-top: 100px; }
+    button { padding: 10px 20px; font-size: 18px; margin: 10px; }
+    #videoTitle { font-size: 20px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+  <h1>🎵 Songless Game</h1>
+  <div id="player"></div>
+
+  <div id="videoTitle">Loading song...</div>
+
+  <button onclick="playNextSnippet()">▶️ Next Hint</button>
+  <button onclick="nextVideo()">➡️ Next Song</button>
+
+  <script>
+    const videos = [
+      { id: "kJQP7kiw5Fk", title: "Despacito" },
+      { id: "09R8_2nJtjg", title: "Sugar - Maroon 5" },
+      { id: "YQHsXMglC9A", title: "Hello - Adele" }
+    ];
+
+    let currentIndex = 0;
+    let snippetDuration = 0.5;
+    let player;
+
+    function loadVideo(index) {
+      document.getElementById("videoTitle").innerText = videos[index].title;
+      player.loadVideoById(videos[index].id);
+      snippetDuration = 0.5;
+    }
+
+    function playNextSnippet() {
+      player.seekTo(0);
+      player.playVideo();
+      setTimeout(() => {
+        player.pauseVideo();
+        snippetDuration += 0.5;
+      }, snippetDuration * 1000);
+    }
+
+    function nextVideo() {
+      currentIndex = (currentIndex + 1) % videos.length;
+      loadVideo(currentIndex);
+    }
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        height: '0',
+        width: '0',
+        videoId: videos[0].id,
+        events: {
+          onReady: () => loadVideo(0)
+        }
+      });
+    }
+  </script>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+</body>
+</html>
