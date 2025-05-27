@@ -75,6 +75,7 @@
     <button onclick="reportIssue('brokenAudio')">🚩 Report Broken Audio</button>
     <p id="reportMessage"></p>
   </div>
+<div id="song-list"></div>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -277,6 +278,41 @@
       document.getElementById("snippetInfo").innerText = "";
       startRound();
     }
+  async function loadSongs() {
+    try {
+      const response = await fetch('songList.json');
+      if (!response.ok) throw new Error('Failed to fetch song list');
+      
+      const songUrls = await response.json();
+
+      console.log('Loaded songs:', songUrls);
+
+      // Example: pick a random song URL and play it
+      const audio = new Audio();
+      const randomIndex = Math.floor(Math.random() * songUrls.length);
+      audio.src = songUrls[randomIndex];
+      audio.play();
+
+      // Create buttons to play songs manually
+      const container = document.getElementById('song-list');
+      songUrls.forEach(url => {
+        const name = decodeURIComponent(url.split('/').pop());
+        const btn = document.createElement('button');
+        btn.textContent = name;
+        btn.onclick = () => {
+          audio.src = url;
+          audio.play();
+        };
+        container.appendChild(btn);
+      });
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  window.onload = loadSongs;
+
   </script>
 
 </body>
