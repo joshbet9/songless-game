@@ -185,7 +185,8 @@
       const duration = snippetDurations[currentSnippetIndex];
       const audio = document.getElementById("audioPlayer");
 
-      audio.src = `snippets/${song.file}`;
+      // Use encodeURIComponent to correctly encode special characters in filename
+      audio.src = `snippets/${encodeURIComponent(song.file)}`;
       audio.currentTime = 0;
       audio.play();
       document.getElementById("videoTitle").innerText = "🎶 Guess the Song!";
