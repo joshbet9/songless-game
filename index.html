@@ -173,12 +173,37 @@
     }
 
     function startRound() {
-      if (!currentRoomId || currentRoundActive || songs.length === 0) return;
-      currentSnippetIndex = 0;
-      currentRoundActive = true;
-      resetGuesses();
-      playSnippet();
-    }
+  if (!currentRoomId || currentRoundActive || songs.length === 0) {
+    console.warn("❌ Cannot start round", {
+      currentRoomId,
+      currentRoundActive,
+      songsLoaded: songs.length
+    });
+    return;
+  }
+
+  const songIndex = Math.floor(Math.random() * songs.length);
+  const selectedSong = songs[songIndex];
+
+  if (!selectedSong?.file) {
+    console.warn("🚫 No valid song to play at index", songIndex, selectedSong);
+    return;
+  }
+
+  console.log("🎵 Starting round with:", selectedSong.title, "by", selectedSong.artist);
+
+  // Play audio snippet
+  const audio = new Audio(selectedSong.file);
+  audio.currentTime = 0.5;
+  audio.play().catch(err => console.error("🔊 Audio play error:", err));
+
+  currentRoundActive = true;
+  currentSongIndex = songIndex;
+
+  // End round after X seconds or when user guesses
+  setTimeout(() => revealAnswer(), 7000);
+}
+
 
     function playSnippet() {
       const song = songs[currentSongIndex];
@@ -275,20 +300,18 @@
     function playNextSnippet() { startRound(); }
 
     function revealAnswer() {
-      if (!songs || !songs.length) {
-        console.warn("Songs array is empty or undefined!");
-        document.getElementById("videoTitle").innerText = "🎵 Answer: Unknown";
-        return;
-      }
-      if (currentSongIndex < 0 || currentSongIndex >= songs.length) {
-        console.warn("Current song index out of range:", currentSongIndex);
-        document.getElementById("videoTitle").innerText = "🎵 Answer: Unknown";
-        return;
-      }
-      const answer = songs[currentSongIndex].title;
-      console.log("🎤 Revealing answer:", answer);
-      document.getElementById("videoTitle").innerText = `🎵 Answer: ${answer}`;
-    }
+  const song = songs[currentSongIndex];
+
+  if (!song) {
+    console.warn("🎤 Tried to reveal an undefined song at index", currentSongIndex);
+    return;
+  }
+
+  console.log(`🎤 Revealing answer: ${song.title} by ${song.artist}`);
+  alert(`Answer: ${song.title} by ${song.artist}`);
+  currentRoundActive = false;
+}
+
 
     function nextSong() {
       currentSongIndex = (currentSongIndex + 1) % songs.length;
@@ -299,30 +322,30 @@
     }
 
     async function loadSongs() {
-      try {
-        console.log("Loading songs from songList.json...");
-        const response = await fetch('songList.json');
-        if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
+  try {
+    const response = await fetch('songList.json');
+    const rawPaths = await response.json();
 
-        const loadedSongs = await response.json();
-        if (Array.isArray(loadedSongs) && loadedSongs.length > 0) {
-          songs = loadedSongs;
-          console.log('✅ Songs loaded:', songs);
-          document.getElementById("videoTitle").innerText = "Ready to play! Join or create a room.";
+    songs = rawPaths.map((filePath) => {
+      const decoded = decodeURIComponent(filePath);
+      const filename = decoded.split('/').pop().replace('.mp3', '');
+      const [artist, title] = filename.split(' - ');
 
-          if (currentRoomId) {
-            startRound();
-          }
-        } else {
-          console.warn("⚠️ songList.json is empty or malformed");
-          document.getElementById("videoTitle").innerText = "No songs found!";
-        }
+      return {
+        title: title?.trim() || "Unknown Title",
+        artist: artist?.trim() || "Unknown Artist",
+        file: filePath
+      };
+    });
 
-      } catch (err) {
-        console.error("❌ Failed to load songs:", err);
-        document.getElementById("videoTitle").innerText = "Failed to load songs.";
-      }
-    }
+    console.log(`✅ Loaded ${songs.length} songs`);
+    console.log('📂 First song example:', songs[0]);
+
+  } catch (err) {
+    console.error('❌ Failed to load songs:', err);
+  }
+}
+
 
     // ✅ Enable automatic loading of songs
     window.onload = loadSongs;
