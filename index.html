@@ -75,7 +75,6 @@
     <button onclick="reportIssue('brokenAudio')">🚩 Report Broken Audio</button>
     <p id="reportMessage"></p>
   </div>
-<div id="song-list"></div>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -102,14 +101,7 @@
     let currentRoundActive = false;
     let snippetTimeout = null;
 
-    const songs = [
-      { file: "1994-01.mp3", title: "Stay (I Missed You) - Lisa Loeb" },
-      { file: "1996-02.mp3", title: "Macarena - Los del Río" },
-      { file: "2000-05.mp3", title: "Oops!... I Did It Again - Britney Spears" },
-      { file: "2010-04.mp3", title: "California Gurls - Katy Perry ft. Snoop Dogg" },
-      { file: "2017-06.mp3", title: "HUMBLE. - Kendrick Lamar" },
-      { file: "2021-03.mp3", title: "drivers license - Olivia Rodrigo" }
-    ];
+    let songs = [];  // <-- dynamically loaded songs
     let currentSongIndex = 0;
 
     function generateRoomId() {
@@ -171,10 +163,17 @@
       });
 
       listenForGuesses();
+
+      // Start the first round when entering room & songs are loaded
+      if (songs.length > 0) {
+        startRound();
+      } else {
+        document.getElementById("videoTitle").innerText = "Loading songs, please wait...";
+      }
     }
 
     function startRound() {
-      if (!currentRoomId || currentRoundActive) return;
+      if (!currentRoomId || currentRoundActive || songs.length === 0) return;
       currentSnippetIndex = 0;
       currentRoundActive = true;
       resetGuesses();
@@ -186,7 +185,6 @@
       const duration = snippetDurations[currentSnippetIndex];
       const audio = document.getElementById("audioPlayer");
 
-      // Use encodeURIComponent to correctly encode special characters in filename
       audio.src = `snippets/${encodeURIComponent(song.file)}`;
       audio.currentTime = 0;
       audio.play();
@@ -268,7 +266,7 @@
 
     function playNextSnippet() { startRound(); }
     function revealAnswer() {
-      const answer = songs[currentSongIndex].title;
+      const answer = songs[currentSongIndex]?.title || "Unknown";
       document.getElementById("videoTitle").innerText = `🎵 Answer: ${answer}`;
     }
     function nextSong() {
@@ -278,40 +276,35 @@
       document.getElementById("snippetInfo").innerText = "";
       startRound();
     }
-  async function loadSongs() {
-    try {
-      const response = await fetch('songList.json');
-      if (!response.ok) throw new Error('Failed to fetch song list');
-      
-      const songUrls = await response.json();
 
-      console.log('Loaded songs:', songUrls);
+    async function loadSongs() {
+      try {
+        const response = await fetch('songList.json');
+        if (!response.ok) throw new Error('Failed to fetch song list');
 
-      // Example: pick a random song URL and play it
-      const audio = new Audio();
-      const randomIndex = Math.floor(Math.random() * songUrls.length);
-      audio.src = songUrls[randomIndex];
-      audio.play();
+        const loadedSongs = await response.json();
 
-      // Create buttons to play songs manually
-      const container = document.getElementById('song-list');
-      songUrls.forEach(url => {
-        const name = decodeURIComponent(url.split('/').pop());
-        const btn = document.createElement('button');
-        btn.textContent = name;
-        btn.onclick = () => {
-          audio.src = url;
-          audio.play();
-        };
-        container.appendChild(btn);
-      });
+        // Expecting loadedSongs to be an array of objects: { file: "filename.mp3", title: "Song Title - Artist" }
+        if (Array.isArray(loadedSongs) && loadedSongs.length > 0) {
+          songs = loadedSongs;
+          console.log('Songs loaded:', songs);
+          document.getElementById("videoTitle").innerText = "Ready to play! Join or create a room.";
 
-    } catch (err) {
-      console.error(err);
+          // If already inside a room, start first round now
+          if (currentRoomId) {
+            startRound();
+          }
+        } else {
+          document.getElementById("videoTitle").innerText = "No songs found!";
+        }
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById("videoTitle").innerText = "Failed to load songs.";
+      }
     }
-  }
 
-  window.onload = loadSongs;
+    window.onload = loadSongs;
 
   </script>
 
