@@ -269,9 +269,21 @@
 
     function playNextSnippet() { startRound(); }
     function revealAnswer() {
-      const answer = songs[currentSongIndex]?.title || "Unknown";
-      document.getElementById("videoTitle").innerText = `🎵 Answer: ${answer}`;
-    }
+  if (!songs || !songs.length) {
+    console.log("Songs array is empty or undefined!");
+    document.getElementById("videoTitle").innerText = "🎵 Answer: Unknown";
+    return;
+  }
+  if (currentSongIndex < 0 || currentSongIndex >= songs.length) {
+    console.log("Current song index out of range:", currentSongIndex);
+    document.getElementById("videoTitle").innerText = "🎵 Answer: Unknown";
+    return;
+  }
+  const answer = songs[currentSongIndex].title;
+  console.log("Revealing answer:", answer);
+  document.getElementById("videoTitle").innerText = `🎵 Answer: ${answer}`;
+}
+
     function nextSong() {
       currentSongIndex = (currentSongIndex + 1) % songs.length;
       currentSnippetIndex = 0;
