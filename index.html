@@ -101,7 +101,7 @@
     let currentRoundActive = false;
     let snippetTimeout = null;
 
-    let songs = [];  // <-- dynamically loaded songs
+    let songs = [];
     let currentSongIndex = 0;
 
     function generateRoomId() {
@@ -164,8 +164,8 @@
 
       listenForGuesses();
 
-      // Start the first round when entering room & songs are loaded
       if (songs.length > 0) {
+        console.log("Starting round immediately in room:", roomId);
         startRound();
       } else {
         document.getElementById("videoTitle").innerText = "Loading songs, please wait...";
@@ -181,29 +181,34 @@
     }
 
     function playSnippet() {
-  const song = songs[currentSongIndex];
-  const duration = snippetDurations[currentSnippetIndex];
-  const audio = document.getElementById("audioPlayer");
+      const song = songs[currentSongIndex];
+      const duration = snippetDurations[currentSnippetIndex];
+      const audio = document.getElementById("audioPlayer");
 
-  // Remove encodeURIComponent here:
-  audio.src = `snippets/${song.file}`;
-  audio.currentTime = 0;
-  audio.play();
+      if (!song || !song.file) {
+        console.warn("No valid song to play at index", currentSongIndex);
+        return;
+      }
 
-  document.getElementById("videoTitle").innerText = "🎶 Guess the Song!";
-  document.getElementById("snippetInfo").innerText = `Hint duration: ${duration} seconds`;
+      audio.src = `snippets/${song.file}`;
+      audio.currentTime = 0;
+      audio.play().catch(err => console.error("Audio playback failed:", err));
 
-  snippetTimeout = setTimeout(() => {
-    audio.pause();
-    currentSnippetIndex++;
-    if (currentSnippetIndex < snippetDurations.length) {
-      playSnippet();
-    } else {
-      endRound();
+      console.log(`🎧 Playing: ${song.file} for ${duration}s`);
+
+      document.getElementById("videoTitle").innerText = "🎶 Guess the Song!";
+      document.getElementById("snippetInfo").innerText = `Hint duration: ${duration} seconds`;
+
+      snippetTimeout = setTimeout(() => {
+        audio.pause();
+        currentSnippetIndex++;
+        if (currentSnippetIndex < snippetDurations.length) {
+          playSnippet();
+        } else {
+          endRound();
+        }
+      }, duration * 1000);
     }
-  }, duration * 1000);
-}
-
 
     function resetGuesses() {
       const roomRef = database.ref("rooms/" + currentRoomId + "/guesses");
@@ -268,21 +273,22 @@
     }
 
     function playNextSnippet() { startRound(); }
+
     function revealAnswer() {
-  if (!songs || !songs.length) {
-    console.log("Songs array is empty or undefined!");
-    document.getElementById("videoTitle").innerText = "🎵 Answer: Unknown";
-    return;
-  }
-  if (currentSongIndex < 0 || currentSongIndex >= songs.length) {
-    console.log("Current song index out of range:", currentSongIndex);
-    document.getElementById("videoTitle").innerText = "🎵 Answer: Unknown";
-    return;
-  }
-  const answer = songs[currentSongIndex].title;
-  console.log("Revealing answer:", answer);
-  document.getElementById("videoTitle").innerText = `🎵 Answer: ${answer}`;
-}
+      if (!songs || !songs.length) {
+        console.warn("Songs array is empty or undefined!");
+        document.getElementById("videoTitle").innerText = "🎵 Answer: Unknown";
+        return;
+      }
+      if (currentSongIndex < 0 || currentSongIndex >= songs.length) {
+        console.warn("Current song index out of range:", currentSongIndex);
+        document.getElementById("videoTitle").innerText = "🎵 Answer: Unknown";
+        return;
+      }
+      const answer = songs[currentSongIndex].title;
+      console.log("🎤 Revealing answer:", answer);
+      document.getElementById("videoTitle").innerText = `🎵 Answer: ${answer}`;
+    }
 
     function nextSong() {
       currentSongIndex = (currentSongIndex + 1) % songs.length;
@@ -294,33 +300,32 @@
 
     async function loadSongs() {
       try {
+        console.log("Loading songs from songList.json...");
         const response = await fetch('songList.json');
-        if (!response.ok) throw new Error('Failed to fetch song list');
+        if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
 
         const loadedSongs = await response.json();
-
-        // Expecting loadedSongs to be an array of objects: { file: "filename.mp3", title: "Song Title - Artist" }
         if (Array.isArray(loadedSongs) && loadedSongs.length > 0) {
           songs = loadedSongs;
-          console.log('Songs loaded:', songs);
+          console.log('✅ Songs loaded:', songs);
           document.getElementById("videoTitle").innerText = "Ready to play! Join or create a room.";
 
-          // If already inside a room, start first round now
           if (currentRoomId) {
             startRound();
           }
         } else {
+          console.warn("⚠️ songList.json is empty or malformed");
           document.getElementById("videoTitle").innerText = "No songs found!";
         }
 
       } catch (err) {
-        console.error(err);
+        console.error("❌ Failed to load songs:", err);
         document.getElementById("videoTitle").innerText = "Failed to load songs.";
       }
     }
 
-    // window.onload = loadSongs;
-
+    // ✅ Enable automatic loading of songs
+    window.onload = loadSongs;
 
   </script>
 
