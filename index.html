@@ -181,26 +181,29 @@
     }
 
     function playSnippet() {
-      const song = songs[currentSongIndex];
-      const duration = snippetDurations[currentSnippetIndex];
-      const audio = document.getElementById("audioPlayer");
+  const song = songs[currentSongIndex];
+  const duration = snippetDurations[currentSnippetIndex];
+  const audio = document.getElementById("audioPlayer");
 
-      audio.src = `snippets/${encodeURIComponent(song.file)}`;
-      audio.currentTime = 0;
-      audio.play();
-      document.getElementById("videoTitle").innerText = "🎶 Guess the Song!";
-      document.getElementById("snippetInfo").innerText = `Hint duration: ${duration} seconds`;
+  // Remove encodeURIComponent here:
+  audio.src = `snippets/${song.file}`;
+  audio.currentTime = 0;
+  audio.play();
 
-      snippetTimeout = setTimeout(() => {
-        audio.pause();
-        currentSnippetIndex++;
-        if (currentSnippetIndex < snippetDurations.length) {
-          playSnippet();
-        } else {
-          endRound();
-        }
-      }, duration * 1000);
+  document.getElementById("videoTitle").innerText = "🎶 Guess the Song!";
+  document.getElementById("snippetInfo").innerText = `Hint duration: ${duration} seconds`;
+
+  snippetTimeout = setTimeout(() => {
+    audio.pause();
+    currentSnippetIndex++;
+    if (currentSnippetIndex < snippetDurations.length) {
+      playSnippet();
+    } else {
+      endRound();
     }
+  }, duration * 1000);
+}
+
 
     function resetGuesses() {
       const roomRef = database.ref("rooms/" + currentRoomId + "/guesses");
